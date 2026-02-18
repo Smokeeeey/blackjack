@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <vector>
+#include <QPushButton>
 
 #include "blackjackgame.h"
 
@@ -21,6 +22,18 @@ private:
 
     BlackJackGame game;
     std::vector<QLabel*> cardLabels;
+
+    // Paramètres d'affichage
+    const int cols  = 9;
+    const int cardW = 80;
+    const int cardH = 120;
+    const int startX = 20;
+    const int gapX = 10;
+    const int gapY = 10;
+
+    bool playerTurn = true;
+    QPushButton* hitBtn = nullptr;   // pour pouvoir disable
+    QPushButton* standBtn = nullptr;
 };
 
 #endif // WINDOW_H

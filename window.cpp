@@ -6,52 +6,64 @@
 #include <QIcon>
 #include <QPixmap>
 #include <QPushButton>
+#include <QDebug>
 
 Window::Window(QWidget *parent) : QMainWindow(parent)
 {
     setupGUI();
 }
 
-Window::~Window() {}
+Window::~Window()
+{
+    // sécurité : libère les labels si la fenêtre se ferme
+    for (QLabel* lbl : cardLabels) delete lbl;
+    cardLabels.clear();
+}
 
 void Window::displayHand(const std::vector<Card>& hand, int y)
 {
-    //Paramètre de l'affichage des cartes
-    const int cols = 9;
-    const int cardW = 80;
-    const int cardH = 120;
-    const int startX = 20;
-    const int startY = 20;
-    const int gapX = 10;
-    const int gapY = 10;
-
-    // Si image manquante => affiche le texte au lieu de planter
-    QLabel *lbl = new QLabel(this);
-    QPixmap pix(c.imagePath());
-    if (pix.isNull())
+    for (int i = 0; i < (int)hand.size(); i++)
     {
-        lbl->setText(c.toString());
-        lbl->setAlignment(Qt::AlignCenter);
-        lbl->setStyleSheet("border: 1px solid black; background: white;");
-        lbl->setFixedSize(cardW, cardH);
+        const Card& c = hand[i];
+
+        QLabel *lbl = new QLabel(this);
+
+        QPixmap pix(c.imagePath());
+        if (pix.isNull())
+        {
+            lbl->setText(c.toString());
+            lbl->setAlignment(Qt::AlignCenter);
+            lbl->setStyleSheet("border: 1px solid black; background: white;");
+            lbl->setFixedSize(cardW, cardH);
+        }
+        else
+        {
+            lbl->setPixmap(pix.scaled(cardW, cardH, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            lbl->setFixedSize(cardW, cardH);
+        }
+
+        int row = i / cols;
+        int col = i % cols;
+
+        lbl->move(startX + col * (cardW + gapX),
+                  y      + row * (cardH + gapY));
+
+        lbl->show();
+        cardLabels.push_back(lbl);
     }
-    else
-    {
-        lbl->setPixmap(pix.scaled(cardW, cardH, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        lbl->setFixedSize(cardW, cardH);
-    }
-
-    int row = cardIndex / cols;
-    int col = cardIndex % cols;
-
-    lbl->move(startX + col * (cardW + gapX),
-              startY + row * (cardH + gapY));
-
-    lbl->show();
-    cardLabels.push_back(lbl);
 }
 
-void Window::refreshHands(){}
+void Window::refreshHands()
+{
+    // supprimer les anciens labels
+    for (QLabel* lbl : cardLabels)
+        delete lbl;
+    cardLabels.clear();
+
+    // ré-afficher
+    displayHand(game.getDealerHand(), 30);
+    displayHand(game.getPlayerHand(), 250);
+}
 
 void Window::setupGUI()
 {
@@ -67,130 +79,58 @@ void Window::setupGUI()
     displayHand(game.getDealerHand(), 30);
     displayHand(game.getPlayerHand(), 250);
 
-    QPushButton* hitBtn = new QPushButton("Player hit", this);
+    //----------------------------------------------
+    // ***HIT***
+    hitBtn = new QPushButton("Player hit", this);
     hitBtn->setGeometry(400, 600, 150, 40);
 
     connect(hitBtn, &QPushButton::clicked, this, [this]() {
-        if (game.playerBust()) return;  // optionnel
+        if (!playerTurn) return;
 
         game.playerHit();
+        refreshHands();
 
         if (game.playerBust()) {
             qDebug() << "Player bust!";
+            playerTurn = false;
+            hitBtn->setEnabled(false);
+            if (standBtn) standBtn->setEnabled(false);
         }
     });
 
-    QPushButton* standBtn = new QPushButton("Stand", this);
+    //----------------------------------------------
+    // ***STAND***
+    standBtn = new QPushButton("Stand", this);
     standBtn->setGeometry(600, 600, 150, 40);
 
     connect(standBtn, &QPushButton::clicked, this, [this]() {
+        if (!playerTurn) return;
+
+        playerTurn = false;
+        hitBtn->setEnabled(false);
+        standBtn->setEnabled(false);
+
         game.dealerPlay();
         qDebug() << "Player:" << game.playerScore()
                  << "Dealer:" << game.dealerScore();
+        refreshHands();
     });
 
+    //----------------------------------------------
+    // ***STAND***
     QPushButton* newBtn = new QPushButton("New game", this);
     newBtn->setGeometry(50, 600, 150, 40);
 
     connect(newBtn, &QPushButton::clicked, this, [this]() {
         game.newGame();
+        playerTurn = true;
+        hitBtn->setEnabled(true);
+        if (standBtn) standBtn->setEnabled(true);
+        refreshHands();
     });
+
 }
 
-    /*
-    QPushButton* btn = new QPushButton("Player hit", this);
-    btn->setGeometry(50, 50, 150, 40);
-    btn->move(400, 600);
 
-    connect(btn, &QPushButton::clicked, this, [this, cols, cardW, cardH, startX, startY, gapX, gapY](){
-        qDebug("Bouton pressé !");
 
-        Card c = game.draw(); // prend une carte du deck
-
-        // Si image manquante => affiche le texte au lieu de planter
-        QLabel *lbl = new QLabel(this);
-        QPixmap pix(c.imagePath());
-        if (pix.isNull())
-        {
-            lbl->setText(c.toString());
-            lbl->setAlignment(Qt::AlignCenter);
-            lbl->setStyleSheet("border: 1px solid black; background: white;");
-            lbl->setFixedSize(cardW, cardH);
-        }
-        else
-        {
-            lbl->setPixmap(pix.scaled(cardW, cardH, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-            lbl->setFixedSize(cardW, cardH);
-        }
-
-        int row = cardIndex / cols;
-        int col = cardIndex % cols;
-
-        lbl->move(startX + col * (cardW + gapX),
-                  startY + row * (cardH + gapY));
-
-        lbl->show();
-        cardLabels.push_back(lbl);
-
-        cardIndex++;
-
-    });
-
-    QPushButton* newBtn = new QPushButton("New game", this);
-    newBtn->setGeometry(600, 600, 150, 40);
-
-    connect(newBtn, &QPushButton::clicked, this, [this]() {
-        game.newGame();
-    });
-    */
-
-            /*
-            const int cols = 9;     // 9 par ligne => 4 lignes (9*4=36)
-            const int cardW = 80;
-            const int cardH = 120;
-            const int startX = 20;
-            const int startY = 20;
-            const int gapX = 10;
-            const int gapY = 10;
-
-            cardLabels.reserve(52);
-
-            for (int i = 0; i < 52; ++i)
-            {
-                Card c = game.draw(); // prend une carte du deck
-
-                // Si image manquante => affiche le texte au lieu de planter
-                QLabel *lbl = new QLabel(this);
-                QPixmap pix(c.imagePath());
-                if (pix.isNull())
-                {
-                    lbl->setText(c.toString());
-                    lbl->setAlignment(Qt::AlignCenter);
-                    lbl->setStyleSheet("border: 1px solid black; background: white;");
-                    lbl->setFixedSize(cardW, cardH);
-                }
-                else
-                {
-                    lbl->setPixmap(pix.scaled(cardW, cardH, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-                    lbl->setFixedSize(cardW, cardH);
-                }
-
-                int row = i / cols;
-                int col = i % cols;
-
-                lbl->move(startX + col * (cardW + gapX),
-                          startY + row * (cardH + gapY));
-
-                lbl->show();
-                cardLabels.push_back(lbl);
-
-                QPushButton* btn = new QPushButton("Nouvelle partie", this);
-                btn->setGeometry(50, 50, 150, 40);
-                btn->move(400, 600);
-
-                connect(btn, &QPushButton::clicked, this, [](){
-                    qDebug("Bouton pressé !");
-                });
-            }
-            */
 
