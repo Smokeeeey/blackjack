@@ -65,16 +65,41 @@ void Window::refreshHands()
     displayHand(game.getPlayerHand(), 250);
 }
 
+void Window::updateScores()
+{
+    playerScoreLabel->setText(
+        "Player score: " + QString::number(game.playerScore())
+        );
+
+    dealerScoreLabel->setText(
+        "Dealer score: " + QString::number(game.dealerScore())
+        );
+}
+
 void Window::setupGUI()
 {
-    //Paramètre de la fenêtre
+    //----------------------------------------------
+    // ***Paramètre de la fenêtre***
     setWindowTitle("BlackJack");
     setWindowIcon(QIcon(":/images/spades_A.png"));
     setGeometry(200, 200, 1000, 750);
 
+    //----------------------------------------------
+    // ***Affichage score***
+    playerScoreLabel = new QLabel(this);
+    playerScoreLabel->setGeometry(20, 210, 300, 30);
+    playerScoreLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
+
+    dealerScoreLabel = new QLabel(this);
+    dealerScoreLabel->setGeometry(20, 10, 300, 30);
+    dealerScoreLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
+
+    //----------------------------------------------
+    // ***Affiche le premier jeu***
     cardLabels.reserve(52);
 
     game.newGame();     //start
+    updateScores();
 
     displayHand(game.getDealerHand(), 30);
     displayHand(game.getPlayerHand(), 250);
@@ -89,9 +114,9 @@ void Window::setupGUI()
 
         game.playerHit();
         refreshHands();
+        updateScores();
 
         if (game.playerBust()) {
-            qDebug() << "Player bust!";
             playerTurn = false;
             hitBtn->setEnabled(false);
             if (standBtn) standBtn->setEnabled(false);
@@ -111,9 +136,8 @@ void Window::setupGUI()
         standBtn->setEnabled(false);
 
         game.dealerPlay();
-        qDebug() << "Player:" << game.playerScore()
-                 << "Dealer:" << game.dealerScore();
         refreshHands();
+        updateScores();
     });
 
     //----------------------------------------------
@@ -127,6 +151,7 @@ void Window::setupGUI()
         hitBtn->setEnabled(true);
         if (standBtn) standBtn->setEnabled(true);
         refreshHands();
+        updateScores();
     });
 
 }
