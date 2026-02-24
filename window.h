@@ -28,9 +28,11 @@ private:
     const int cols  = 9;
     const int cardW = 80;
     const int cardH = 120;
-    const int startX = 20;
+    const int startX = 1675/2.3;
     const int gapX = 10;
     const int gapY = 10;
+    const int y_deal = 100;
+    const int y_player = 600;
 
     bool playerTurn = true;
 

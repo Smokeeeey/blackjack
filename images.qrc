@@ -57,5 +57,6 @@
         <file>images/spades_3.png</file>
         <file>images/spades_4.png</file>
         <file>images/spades_5.png</file>
+        <file>images/table.png</file>
     </qresource>
 </RCC>
